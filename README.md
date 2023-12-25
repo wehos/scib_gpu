@@ -25,6 +25,39 @@ cd vllm
 pip install -e .
 ```
 
+## Step 3 Data Preparation
+Prepare an `h5ad` file, with embeddings stored in `.obsm['X_emb']` or `.X`, batch labels in `batch_label`, cell type labels in `cell_type`.
+
+## Step 4 Evaluation
+
+Codes for standard evaluation.
+```
+INPUT_ANNDATA_PATH = 'xxx.h5ad'
+OUTPUT_ANNDATA_PATH = 'yyy.csv'
+
+import anndata as ad
+import scib
+import scanpy as sc
+
+adata = ad.read_h5ad(INPUT_ANNDATA_PATH)
+if 'X_emb' not in adata.obsm:
+    adata.obsm['X_emb'] = adata.X      # If embeddings are stored in .X
+if 'batch_label' not in adata.obs:
+    adata.obs['batch_label'] = adata.obs['batch']
+
+### To specify resolution choices for leiden, call `cluster_optimal_resolution` manually
+if False:    # Change to True to disable this code block
+    sc.pp.neighbors(adata, use_rep='X_emb')
+    scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", resolutions=[0.1, 0.25, 0.5, 0.75, 1.0], label_key="cell_type")
+###
+
+res = scib.metrics.metrics(adata, adata, "batch_label", "cell_type", embed="X_emb", cluster_key="cluster", organism='human',
+                    ari_ = True, nmi_ = True, silhouette_=True, isolated_labels_asw_ =True, isolated_labels_=True, pcr_=True,
+                    graph_conn_ =True, lisi_graph_=True)
+res.to_csv(OUTPUT_ANNDATA_PATH)
+```
+
+
 # Instructions from original repo
 ### Please cite:
 
