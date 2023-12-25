@@ -4,6 +4,7 @@ import pandas as pd
 import scanpy as sc
 import seaborn as sns
 from deprecated import deprecated
+import rapids_singlecell as rsc
 
 from .nmi import nmi
 
@@ -57,7 +58,7 @@ def cluster_optimal_resolution(
         ``score_max``: maximum score;
         ``score_all``: ``pd.DataFrame`` containing all scores at resolutions. Can be used to plot the score profile.
     """
-    if cluster_key in adata.obs.columns:
+   if cluster_key in adata.obs.columns:
         if force:
             print(
                 f"WARNING: cluster key {cluster_key} already exists in adata.obs and will be overwritten because "
@@ -93,12 +94,14 @@ def cluster_optimal_resolution(
             raise RuntimeError(
                 "Neighbours must be computed when setting use_rep to None"
             )
-    else:
+    elif 'neighbors' not in adata.uns:
         print(f"Compute neighbors on rep {use_rep}")
         sc.pp.neighbors(adata, use_rep=use_rep)
 
     for res in resolutions:
-        cluster_function(adata, resolution=res, key_added=cluster_key, **kwargs)
+        #cluster_function(adata, resolution=res, key_added=cluster_key, **kwargs)
+        rsc.tl.leiden(adata, resolution=res, key_added=cluster_key)
+
         score = metric(adata, label_key, cluster_key, **metric_kwargs)
         if verbose:
             print(f"resolution: {res}, {metric.__name__}: {score}")
