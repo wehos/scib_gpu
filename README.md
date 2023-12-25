@@ -45,8 +45,8 @@ if 'X_emb' not in adata.obsm:
 if 'batch_label' not in adata.obs:
     adata.obs['batch_label'] = adata.obs['batch']
 
-### To specify resolution choices for leiden, call `cluster_optimal_resolution` manually
-if False:    # Change to True to disable this code block
+### To specify resolution choices for leiden, call `cluster_optimal_resolution` manually before scib.metrics
+if True:    # Change to True to disable this code block
     sc.pp.neighbors(adata, use_rep='X_emb')
     scib.me.cluster_optimal_resolution(adata, cluster_key="cluster", resolutions=[0.1, 0.25, 0.5, 0.75, 1.0], label_key="cell_type")
 ###
