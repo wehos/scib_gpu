@@ -4,7 +4,7 @@
 This repository contains the code for a modified version of `scib` package.
 For original instruction, refer to the [original repo](https://github.com/theislab/scib) and  [manuscript](https://doi.org/10.1038/s41592-021-01336-8).
 
-# Environment Setup
+# Benchmarking Workflow
 
 ## Step 1 Conda Installation
 ```
