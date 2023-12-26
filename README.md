@@ -21,7 +21,7 @@ conda install ipykernel
 
 ```
 git clone git@github.com:wehos/scib_gpu.git
-cd vllm
+cd scib_gpu
 pip install -e .
 ```
 
