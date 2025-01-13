@@ -1,7 +1,9 @@
 import logging
 import re
 import tempfile
+from typing import Literal
 
+import anndata as ad
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -642,8 +644,24 @@ def reduce_data(
         sc.tl.umap(adata)
 
 
-# Cell Cycle
-def score_cell_cycle(adata, organism="mouse"):
+def score_cell_cycle(
+    adata: ad.AnnData,
+    organism: Literal[
+        "mouse",
+        "mus musculus",
+        "mus_musculus",
+        "human",
+        "homo sapiens",
+        "homo_sapiens",
+        "c_elegans",
+        "c elegans",
+        "caenorhabditis elegans",
+        "caenorhabditis_elegans",
+        "zebrafish",
+        "danio rerio",
+        "danio_rerio",
+    ] = "mouse",
+):
     """Score cell cycle score given an organism
 
     Wrapper function for `scanpy.tl.score_genes_cell_cycle`_
@@ -653,41 +671,109 @@ def score_cell_cycle(adata, organism="mouse"):
     Tirosh et al. cell cycle marker genes downloaded from
     https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
 
-    For human, mouse genes are capitalised and used directly. This is under the assumption that cell cycle genes are
-    well conserved across species.
+    See more on gene sets in :func:`~scib.preprocessing.get_cell_cycle_genes`.
+
+    This function picks gene IDs or gene names of the cell cycle genes, depending on what is present in the adata object.
 
     :param adata: anndata object containing
     :param organism: organism of gene names to match cell cycle genes
     :return: tuple of ``(s_genes, g2m_genes)`` of S-phase genes and G2- and M-phase genes scores
     """
-    import pathlib
 
-    root = pathlib.Path(__file__).parent
+    def filter_genes(adata: ad.AnnData, df: pd.DataFrame, columns: list = None):
+        if columns is None:
+            columns = ["gene_name", "gene_id"]
+        elif isinstance(columns, str):
+            columns = [columns]
 
-    cc_files = {
-        "mouse": [
-            root / "resources/s_genes_tirosh.txt",
-            root / "resources/g2m_genes_tirosh.txt",
-        ],
-        "human": [
-            root / "resources/s_genes_tirosh_hm.txt",
-            root / "resources/g2m_genes_tirosh_hm.txt",
-        ],
-    }
+        n_genes = 0
+        for col in columns:
+            _genes = [g for g in df[col] if g in adata.var_names]
+            if len(_genes) > n_genes:  # pick largest overlapping set
+                n_genes = len(_genes)
+                genes = _genes
 
-    with open(cc_files[organism][0]) as f:
-        s_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
-    with open(cc_files[organism][1]) as f:
-        g2m_genes = [x.strip() for x in f.readlines() if x.strip() in adata.var.index]
+        if n_genes == 0:
+            # pick random genes for error message
+            rand_genes = np.random.choice(adata.var_names, 10)
+            raise ValueError(
+                f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}\n cell cycle genes:\n {df}"
+            )
+        return genes
 
-    if (len(s_genes) == 0) or (len(g2m_genes) == 0):
-        rand_choice = np.random.randint(1, adata.n_vars, 10)
-        rand_genes = adata.var_names[rand_choice].tolist()
-        raise ValueError(
-            f"cell cycle genes not in adata\n organism: {organism}\n varnames: {rand_genes}"
-        )
+    # get gene sets
+    gene_map = get_cell_cycle_genes(organism)
 
+    # filter gene sets across data
+    s_genes = filter_genes(adata, gene_map.query("phase == 'S'"))
+    g2m_genes = filter_genes(adata, gene_map.query("phase == 'G2/M'"))
+
+    # compute scores
     sc.tl.score_genes_cell_cycle(adata, s_genes=s_genes, g2m_genes=g2m_genes)
+
+
+def get_cell_cycle_genes(
+    organism: Literal[
+        "mouse",
+        "mus musculus",
+        "mus_musculus",
+        "human",
+        "homo sapiens",
+        "homo_sapiens",
+        "c_elegans",
+        "c elegans",
+        "caenorhabditis elegans",
+        "caenorhabditis_elegans",
+        "zebrafish",
+        "danio rerio",
+        "danio_rerio",
+    ]
+):
+    """
+    Get cell cycle genes for a given organism
+
+    Tirosh et al. cell cycle marker genes downloaded from
+    https://raw.githubusercontent.com/theislab/scanpy_usage/master/180209_cell_cycle/data/regev_lab_cell_cycle_genes.txt
+
+    For human, mouse genes are capitalised and used directly. This is under the assumption that cell cycle genes are
+    well conserved across species
+
+    For organisms other than human or mouse, orthlogy-mapped datasets from Tinyaltas were used:
+    https://github.com/hbc/tinyatlas/tree/master/cell_cycle
+
+    :param organism: organism of gene names to match cell cycle genes
+    :param identifier: gene identifier to use. options: "gene_name", "gene_id"
+    """
+    from pathlib import Path
+
+    organism_map = {
+        "mouse": "mus_musculus",
+        "mus musculus": "mus_musculus",
+        "human": "homo_sapiens",
+        "homo sapiens": "homo_sapiens",
+        "c_elegans": "caenorhabditis_elegans",
+        "caenorhabditis elegans": "caenorhabditis_elegans",
+        "c elegans": "caenorhabditis_elegans",
+        "zebrafish": "danio_rerio",
+        "danio rerio": "danio_rerio",
+    }
+    # additionally map each key to itself to make them available as well
+    organism_map |= {x: x for x in organism_map.values()}
+
+    # get lower-case organism name
+    organism = organism.lower()
+
+    assert (
+        organism in organism_map
+    ), f"organism '{organism}' not supported. Supported organisms: {list(organism_map.keys())}"
+
+    # get organism name needed for retrieving correct file
+    organism = organism_map[organism]
+
+    # read gene sets
+    gene_file = Path(__file__).parent / "resources" / f"cell_cycle_genes_{organism}.tsv"
+    assert gene_file.exists(), f"{gene_file} doesn't exist"
+    return pd.read_table(gene_file)
 
 
 def save_seurat(adata, path, batch, hvgs=None):
