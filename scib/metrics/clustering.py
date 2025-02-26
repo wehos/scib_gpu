@@ -58,7 +58,7 @@ def cluster_optimal_resolution(
         ``score_max``: maximum score;
         ``score_all``: ``pd.DataFrame`` containing all scores at resolutions. Can be used to plot the score profile.
     """
-   if cluster_key in adata.obs.columns:
+    if cluster_key in adata.obs.columns:
         if force:
             print(
                 f"WARNING: cluster key {cluster_key} already exists in adata.obs and will be overwritten because "
