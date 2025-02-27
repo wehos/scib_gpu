@@ -4,6 +4,8 @@
 This repository contains the code for a modified version of `scib` package.
 For original instruction, refer to the [original repo](https://github.com/theislab/scib) and  [manuscript](https://doi.org/10.1038/s41592-021-01336-8).
 
+Notes: This repo aimed to resolve the cugraph issues and scanpy integration issues with rapids-singlecell. However, as of 2025, it seems Rapids has fixed cugraph issues since 24.12 and scanpy now has a deeper integration with rapids. Maybe it's time to try the latest version of all the packages instead of using this repo.
+
 # Benchmarking Workflow
 
 ## Step 1 Conda Installation
