@@ -13,7 +13,7 @@ conda activate leiden
 conda install cudatoolkit=11.7 -c pytorch -c nvidia
 pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
 pip install --extra-index-url https://pypi.nvidia.com cudf-cu11==23.4.1 dask-cudf-cu11==23.4.1 cuml-cu11==23.4.1 cugraph-cu11==23.4.1 cucim==23.4.1
-pip install einops ipdb pydance torchmetrics rapids-singlecell==0.9.6 scvi-tools wandb hdf5plugin
+pip install einops ipdb pydance torchmetrics rapids-singlecell==0.9.3 scvi-tools wandb hdf5plugin
 conda install ipykernel
 ```
 
